@@ -21,10 +21,11 @@ library(rmapshaper)
 # options(DT.options = list(scrollY="100vh", lengthMenu = c(5, 10, 15, 20)))
 options(DT.options = list(lengthMenu = c(10, 20, 50, 100)))
 library(highcharter)
+library(tidycensus)
 ```
 
 ```{r data, include=FALSE, cache=TRUE}
-# Read in no transit access. Whole census units with no transit access.  
+# Read in no transit access. Whole census units with no transit access. Includes ma_busBuff400m_sf with counts of pop with access to bus. 
 load("../DATA/transport/MA/noTransit.Rds")
 
 # Read in 80th percentile headways. Whole census units with average headways exceeding 80th percentile headway for all routes.
@@ -417,7 +418,7 @@ The most important benefit of a transportation system is the access it provides 
 ## Transportation Adequacy & Priority Populations by Census block group {.tabset}
 
 ### Bus Access
-```{r mapBus, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND no bus access."}
+```{r mapBus, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND no bus stops within 1 mile."}
 # # create color palette
 # palPM25 <- colorQuantile(
 #   palette = "YlOrRd",
@@ -1152,19 +1153,48 @@ For example, adults over the age of 64 (i.e., 'Over 64') in the state reside in 
 ### By municipality
 
 ```{r townTable, fig.align="center"}
+# calculate bus access pops per municipality
+busAccesbyTown <- ma_busBuff400m_sf %>% 
+  transmute(NewPop = NewPop, OldArea = as.numeric(st_area(.))) %>% 
+  st_intersection(st_transform(ma_towns, st_crs(ma_busBuff400m_sf))) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         BusPop = as.integer(NewPop*Proportion)) %>% 
+  as.data.frame() %>% 
+  group_by(NAME) %>% 
+  summarize(BusPop = sum(BusPop))
+
+# download town pops
+town_pops <- get_acs(geography = "county subdivision", survey = "acs5",
+                     variables = c(totalpop = "B03002_001"),
+                     state = "MA", output = "wide", year = 2018) %>% 
+  select(GEOID, totalpopE)
+
+# grab municipal boundaries
+ma_towns_sf <- county_subdivisions(state = "MA", cb = TRUE) %>% 
+  st_transform(., crs = 26986)
+
+# create df with town names from tigris and pops from tidycensus
+town_busAccess_pct <- ma_towns_sf %>% 
+  as.data.frame() %>% 
+  left_join(., town_pops, by = "GEOID") %>% 
+  select(NAME, totalpopE) %>% 
+  left_join(busAccesbyTown, ., by = "NAME") %>% 
+  mutate(PctBusAccess = BusPop/totalpopE*100)
+
 ma_towns %>% 
   as.data.frame() %>% 
   filter(NAME != "County subdivisions not defined") %>% 
+  left_join(., town_busAccess_pct, by = "NAME") %>% 
   transmute(`City/Town` = NAME,
-            `No Bus BGs` = BGsNoBus,
-            `Bus Headway Pct Rank` = round(pctrank_AvgStopHeadway.mean,0),
-            `Bus Headway BGs > 80th` = BGs80thHwy,
-            `Walkability Pct Rank` = round(pctrank_NatWalkInd.mean,0),
-            `Least Walkable BGs` = BGsLWalk,
-            `Cost Burden Pct Rank` = round(pctrank_hh7_t.mean,0),
-            `Cost Burden BGs > 80th` = BGs80thTcost) %>% 
+            `Pct Bus Access` = PctBusAccess/100,
+            `Avg Headway (minutes)` = AvgStopHeadway.mean,
+            `Avg Walkability` = NatWalkInd.mean,
+            `Avg Transport Cost Burden` = hh7_t.mean/100) %>% 
   arrange(`City/Town`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+  datatable(., rownames = FALSE, options = list(pageLength = 10)) %>% 
+  formatRound(., columns = c(3,4), digits = 1, mark = ",") %>% 
+  formatPercentage(., columns = c(2,5), digits = 1)
 ```
 
 <!-- > Number of Census block groups with three or more cumualtive environmental burdens and high concentrations of populations of concern -->
