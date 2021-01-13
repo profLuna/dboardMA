@@ -406,8 +406,8 @@ ma_blkgrps_sf_Tcost <- ma_blkgrps_sf %>%
 H80th <- quantile(ma_blkgrps_sf$AvgStopHeadway, 0.8, na.rm = T)
 Tcost80th <- round(quantile(ma_blkgrps_sf$hh7_t, 0.8, na.rm = T),1)
 
-# clean up
-rm(list = ls(pattern = paste("muni", "_80th", "headway80th", "_tract", "houseNoBus", "Transport", "houseWalk", "senateNoBus", "senateWalk", "lai_ma_blkgrp", "lai_ToverH", "_noTransit","ma_blkgrps_sf$", "ma_blkgrps_sf_noBus", sep = "|"), ))
+# clean up "ma_blkgrps_sf$",
+rm(list = ls(pattern = paste("muni", "_80th", "headway80th", "_tract", "houseNoBus", "Transport", "houseWalk", "senateNoBus", "senateWalk", "lai_ma_blkgrp", "lai_ToverH", "_noTransit", "ma_blkgrps_sf_noBus", sep = "|"), ))
 ```
 
 The most important benefit of a transportation system is the access it provides to opportunity – economic, educational, health care, civic life, and simple freedom of movement.  Lack of adequate access to transportation hinders these opportunities. These interactive figures identify communities across Massachusetts that are most underserved and most sensitive to the quality of four transportation metrics: access to public transit, transit headways, neighborhood walkability, and transportation cost burden.  
@@ -417,7 +417,7 @@ The most important benefit of a transportation system is the access it provides 
 ## Transportation Adequacy & Priority Populations by Census block group {.tabset}
 
 ### Bus Access
-```{r mapBus, fig.align="center", fig.cap="Map of Census block groups with no bus access and high concentrations of priority populations."}
+```{r mapBus, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND no bus access."}
 # # create color palette
 # palPM25 <- colorQuantile(
 #   palette = "YlOrRd",
@@ -519,7 +519,7 @@ leaflet() %>%
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
   addLegend(colors = "red",
-            labels = "No Bus Access",
+            labels = "No Bus Access + Hi Priority Pops",
             position = "bottomleft") %>%
   setView(lng = -71.7, 42.1, zoom = 8) %>% 
   # addMiniMap() %>% 
@@ -538,7 +538,7 @@ leaflet() %>%
 <br>
 
 ### Headways
-```{r mapHwy, fig.align="center", fig.cap="Map of highest average bus headways and priority populations by Census block group."}
+```{r mapHwy, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest average bus headways in the state."}
 # create color palette
 palHwy <- colorQuantile(
   palette = "YlOrRd",
@@ -648,7 +648,7 @@ leaflet() %>%
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
-  addLegend(title = "Average Headway (minutes)", 
+  addLegend(title = "Highest Avg Headways<br>(minutes)", 
             pal = palHwy,
             values = ma_blkgrps_sf_Hwy$AvgStopHeadway,
             position = "bottomleft",
@@ -677,7 +677,7 @@ leaflet() %>%
 <br>
 
 ### Walkability
-```{r mapWalk, fig.align="center", fig.cap="Map of least walkable neighborhoods and priority populations by Census block group."}
+```{r mapWalk, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND least walkable scores."}
 # create color palette
 palWalk <- colorQuantile(
   palette = "YlOrRd",
@@ -791,7 +791,7 @@ leaflet() %>%
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
-  addLegend(title = "Walkability Score", 
+  addLegend(title = "Least Walkable Scores", 
             pal = palWalk,
             values = ma_blkgrps_sf_Walk$NatWalkInd,
             position = "bottomleft",
@@ -820,7 +820,7 @@ leaflet() %>%
 <br>
 
 ### Cost Burden
-```{r mapTcost, fig.align="center", fig.cap="Map of highest transportation cost burden and priority populations by Census block group."}
+```{r mapTcost, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest transportation cost burden as a percentage of household income."}
 # create color palette
 palTcost <- colorQuantile(
   palette = "YlOrRd",
@@ -930,7 +930,7 @@ leaflet() %>%
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
-  addLegend(title = "HH Income Cost Burden (%)", 
+  addLegend(title = "Highest Transport Cost Burdens<br>(% Household Income)", 
             pal = palTcost,
             values = ma_blkgrps_sf_Tcost$hh7_t,
             position = "bottomleft",
@@ -1008,7 +1008,8 @@ ma_transitAccessPops_df %>%
   mutate(group_index = as.numeric(Group)) %>% 
   hchart(., "bar", hcaes(x = group_index, y = PctBus, 
                          group = Status, name = Group), 
-                         color = c("#7CB5EC", "#F7A35C", "#000000")) %>% 
+                         color = c("#7CB5EC", "#F7A35C", "#000000"),
+         pointWidth = 15) %>% 
   hc_yAxis(title = list(text = "Percent of population with access to bus stops"),
            labels = list(format = "{value}%")) %>% 
   hc_xAxis(title = NULL, type = "category", labels = list(step = 1)) %>% 
@@ -1044,7 +1045,8 @@ ma_busHeadwayPops_df %>%
   mutate(group_index = as.numeric(Group)) %>% 
   hchart(., "bar", hcaes(x = group_index, y = AvgWHeadway, 
                          group = Status, name = Group), 
-                         color = c("#F7A35C", "#7CB5EC", "#000000")) %>% 
+                         color = c("#F7A35C", "#7CB5EC", "#000000"),
+         pointWidth = 15) %>% 
   hc_yAxis(title = list(text = "Minutes between bus arrivals")) %>% 
   hc_xAxis(title = NULL, type = "category", labels = list(step = 1)) %>% 
   hc_tooltip(pointFormat = "{series.name}: {point.y} minutes") %>% 
@@ -1077,7 +1079,8 @@ ma_wAvgWalkability_df %>%
   mutate(group_index = as.numeric(Group)) %>% 
   hchart(., "bar", hcaes(x = group_index, y = wNatWalkIndex, 
                          group = Status, name = Group), 
-                         color = c("#7CB5EC", "#F7A35C", "#000000")) %>% 
+                         color = c("#7CB5EC", "#F7A35C", "#000000"),
+         pointWidth = 15) %>% 
   hc_yAxis(title = list(text = "Walkability Index")) %>% 
   hc_xAxis(title = NULL, type = "category", labels = list(step = 1)) %>% 
   hc_tooltip(pointFormat = "{series.name}: {point.y}") %>% 
@@ -1112,7 +1115,8 @@ lai_ma_df %>%
   mutate(group_index = as.numeric(Group)) %>% 
   hchart(., "bar", hcaes(x = group_index, y = wTBurden, 
                          group = Status, name = Group), 
-                         color = c("#F7A35C", "#7CB5EC", "#000000")) %>% 
+                         color = c("#F7A35C", "#7CB5EC", "#000000"),
+         pointWidth = 15) %>% 
   hc_yAxis(title = list(text = "Percent of household income"),
            labels = list(format = "{value}%")) %>% 
   hc_xAxis(title = NULL, type = "category", labels = list(step = 1)) %>% 
