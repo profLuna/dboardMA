@@ -449,11 +449,28 @@ For example, `r LEH1`% of limited English speaking households (i.e., 'Limited En
 ### By municipality
 
 ```{r townTable, fig.align="center"}
+# create object to hold complex headers for table
+sketch1 = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(rowspan = 2, 'City/Town'),
+      th(colspan = 2, '3 Burdens'),
+      th(colspan = 2, '4 Burdens'),
+      th(colspan = 2, '3+ Burdens')
+    ),
+    tr(
+      lapply(rep(c('Pop', 'Pct'), 3), th)
+    )
+  )
+))
+
 read_csv("../tables/burdens_town.csv") %>% 
-  rename(., `BGs with 3 Burdens` = `3 Burdens`, 
-         `BGs with 4 Burdens` = `4 Burdens`, 
-         `BGs with 3+ Burdens` = `3+ Burdens`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+  mutate(across(starts_with("Pct"), ~./100)) %>% # let DT do formatting
+  datatable(., rownames = FALSE, options = list(pageLength = 10), 
+            container = sketch1) %>% 
+  formatRound(., columns = c(2,4,6), digits = 0, mark = ",") %>% 
+  formatPercentage(., columns = c(3,5,7), digits = 1)
 ```
 
 <!-- > Number of Census block groups with three or more cumualtive environmental burdens and high concentrations of populations of concern -->
@@ -462,25 +479,83 @@ read_csv("../tables/burdens_town.csv") %>%
 ### By state house district
 
 ```{r houseTable, fig.align="center"}
+# create object to hold complex headers for table
+sketch2 = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(rowspan = 2, 'House District'),
+      th(colspan = 2, '3 Burdens'),
+      th(colspan = 2, '4 Burdens'),
+      th(colspan = 2, '3+ Burdens')
+    ),
+    tr(
+      lapply(rep(c('Pop', 'Pct'), 3), th)
+    )
+  )
+))
+
 read_csv("../tables/burdens_house.csv") %>% 
-  rename(., `BGs with 3 Burdens` = `3 Burdens`, 
-         `BGs with 4 Burdens` = `4 Burdens`, 
-         `BGs with 3+ Burdens` = `3+ Burdens`) %>%
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+  mutate(across(starts_with("Pct"), ~./100)) %>% # let DT do formatting
+  datatable(., rownames = FALSE, options = list(pageLength = 10), 
+            container = sketch2) %>% 
+  formatRound(., columns = c(2,4,6), digits = 0, mark = ",") %>% 
+  formatPercentage(., columns = c(3,5,7), digits = 1)
 ```
 
 
 ### By state senate district
 
 ```{r senateTable, fig.align="center"}
+# create object to hold complex headers for table
+sketch3 = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(rowspan = 2, 'Senate District'),
+      th(colspan = 2, '3 Burdens'),
+      th(colspan = 2, '4 Burdens'),
+      th(colspan = 2, '3+ Burdens')
+    ),
+    tr(
+      lapply(rep(c('Pop', 'Pct'), 3), th)
+    )
+  )
+))
+
 read_csv("../tables/burdens_senate.csv") %>% 
-  rename(., `BGs with 3 Burdens` = `3 Burdens`, 
-         `BGs with 4 Burdens` = `4 Burdens`, 
-         `BGs with 3+ Burdens` = `3+ Burdens`) %>%
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+  mutate(across(starts_with("Pct"), ~./100)) %>% # let DT do formatting
+  datatable(., rownames = FALSE, options = list(pageLength = 10), 
+            container = sketch3) %>% 
+  formatRound(., columns = c(2,4,6), digits = 0, mark = ",") %>% 
+  formatPercentage(., columns = c(3,5,7), digits = 1)
+
+# read_csv("../tables/burdens_senate.csv") %>% 
+#   rename(., `BGs with 3 Burdens` = `3 Burdens`, 
+#          `BGs with 4 Burdens` = `4 Burdens`, 
+#          `BGs with 3+ Burdens` = `3+ Burdens`) %>%
+#   datatable(., rownames = FALSE, options = list(pageLength = 10))
 ```
 
 
 ### About the tables
 
-These tables show the number of Census block groups with three or more highest cumulative environmental burdens. A block group is classified as having a high cumulative burden if it has a high percentage of one or more priority population groups (80th percentile for the state) *AND* it experiences the highest level of burdens (80th percentile for the state) for one or more categories of environmental burdens.
+These tables show the aggregate number and percentage of people living in Census block groups with three or more highest cumulative environmental burdens. A block group is classified as having a high cumulative burden if it has a high percentage of one or more priority population groups (80th percentile for the state) *AND* it experiences the highest level of burdens (80th percentile for the state) for one or more categories of environmental burdens. 
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
