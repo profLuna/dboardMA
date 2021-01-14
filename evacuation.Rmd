@@ -259,7 +259,7 @@ Flood and storm surge are significant risks in Massachusetts. In the event of ex
 ## Flood Hazard Exposure & Priority Populations by Census block group {.tabset}
 
 ### Flood
-```{r mapNFHZA, fig.align="center", fig.cap="Map of high concentrations of priority populations living in FEMA flood zones by Census block group."}
+```{r mapNFHZA, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations living in FEMA flood zones."}
 PopupEJ <- paste0(EJbgs$NAME, "<br/>",
                   "<b>Town:</b> ", EJbgs$TOWN, "<br/>",
                   "<b>State House District:</b> ", EJbgs$REP_DIST, "<br/>",
@@ -350,7 +350,7 @@ leaflet() %>%
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
   addLegend(colors = "red",
-            labels = "Flood Risk",
+            labels = "Flood Risk + Hi Priority Pops",
             position = "bottomleft") %>% 
   setView(lng = -71.7, 42.1, zoom = 8) %>% 
   # addMiniMap() %>% 
@@ -369,7 +369,7 @@ leaflet() %>%
 <br>
 
 ### Hurricane
-```{r mapHEVAC, fig.align="center", fig.cap="Map of high concentrations of priority populations living in hurricane evacuation zones by Census block group."}
+```{r mapHEVAC, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations living in hurricane evacuation zones."}
 PopupEJ <- paste0(EJbgs$NAME, "<br/>",
                   "<b>Town:</b> ", EJbgs$TOWN, "<br/>",
                   "<b>State House District:</b> ", EJbgs$REP_DIST, "<br/>",
@@ -459,7 +459,7 @@ leaflet() %>%
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
   addLegend(colors = "red",
-            labels = "Hurricane Evacuation Risk",
+            labels = "Hurricane Evacuation Risk + Hi Priority Pops",
             position = "bottomleft") %>% 
   setView(lng = -71.7, 42.1, zoom = 8) %>% 
   # addMiniMap() %>% 
@@ -528,7 +528,8 @@ ma_FloodPops_df %>%
   mutate(group_index = as.numeric(Group)) %>% 
   hchart(., "bar", hcaes(x = group_index, y = PctFlood, 
                          group = Status, name = Group), 
-                         color = c("#F7A35C", "#7CB5EC", "#000000")) %>% 
+                         color = c("#F7A35C", "#7CB5EC", "#000000"),
+         pointWidth = 15) %>% 
   hc_yAxis(title = list(text = "Percentage of population"),
            labels = list(format = "{value}%")) %>% 
   hc_xAxis(title = NULL, type = "category", labels = list(step = 1)) %>% 
@@ -557,7 +558,8 @@ ma_HevacPops_df %>%
   mutate(group_index = as.numeric(Group)) %>% 
   hchart(., "bar", hcaes(x = group_index, y = PctHevac, 
                          group = Status, name = Group), 
-                         color = c("#F7A35C", "#7CB5EC", "#000000")) %>% 
+                         color = c("#F7A35C", "#7CB5EC", "#000000"),
+         pointWidth = 15) %>% 
   hc_yAxis(title = list(text = "Percentage of population"),
            labels = list(format = "{value}%")) %>% 
   hc_xAxis(title = NULL, type = "category", labels = list(step = 1)) %>% 
