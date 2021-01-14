@@ -268,7 +268,7 @@ Transportation accounts for a significant share of air pollution. These interact
 ## Emissions & Priority Populations by Census block group {.tabset}
 
 ### PM2.5
-```{r mapPM25, fig.align="center", fig.cap="Map of highest PM2.5 concentrations and priority populations by Census block group."}
+```{r mapPM25, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest PM2.5 concentrations."}
 # create color palette
 palPM25 <- colorQuantile(
   palette = "YlOrRd",
@@ -378,7 +378,7 @@ leaflet() %>%
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
-  addLegend(title = "PM<sub>2.5</sub> (&mu;g/m<sup>3</sup>)", 
+  addLegend(title = "Highest PM<sub>2.5</sub> (&mu;g/m<sup>3</sup>)<br>for Priority Populations", 
             pal = palPM25,
             values = round(ma_blkgrps_sf_PM25$PM25_19,2),
             position = "bottomleft",
@@ -409,7 +409,7 @@ leaflet() %>%
 <br>
 
 ### DPM
-```{r mapDPM, fig.align="center", fig.cap="Map of highest Diesel Particullate Matter (DPM) concentrations and priority populations by Census block group."}
+```{r mapDPM, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest Diesel Particullate Matter (DPM) concentrations."}
 # create color palette
 palDPM <- colorQuantile(
   palette = "YlOrRd",
@@ -519,7 +519,7 @@ leaflet() %>%
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
-  addLegend(title = "DPM (&mu;g/m<sup>3</sup>)", 
+  addLegend(title = "Highest Diesel<br>Particulate Matter (&mu;g/m<sup>3</sup>)<br>for Priority Populations", 
             pal = palDPM,
             values = ma_blkgrps_sf_DPM$DSLPM_19,
             position = "bottomleft",
@@ -548,7 +548,7 @@ leaflet() %>%
 <br>
 
 ### Traffic
-```{r mapPTRAF, fig.align="center", fig.cap="Map of highest Traffic Proximity and Volume (PTRAF) values and priority populations by Census block group."}
+```{r mapPTRAF, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest Traffic Proximity and Volume (PTRAF) values - Annual Avg Daily Traffic/Distance(km) to High Traffic Corridor."}
 # create color palette
 palPTRAF <- colorQuantile(
   palette = "YlOrRd",
@@ -658,7 +658,7 @@ leaflet() %>%
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
-  addLegend(title = "PTRAF (AADT/Distance(km))", 
+  addLegend(title = "Highest Traffic<br>Exposure (PTRAF)<br>for Priority Populations", 
             pal = palPTRAF,
             values = ma_blkgrps_sf_PTRAF$PTRAF_19,
             position = "bottomleft",
@@ -787,7 +787,8 @@ PM25popAvg %>%
          Group = recode(Group, "Minority" = "People of Color",
                         "No HS Dip" = "No HS Diploma")) %>% 
   hchart(., "bar", hcaes(x = Group, y = Pct, group = Status), 
-                         color = c("#F7A35C", "#7CB5EC")) %>% 
+                         color = c("#F7A35C", "#7CB5EC"),
+         pointWidth = 15) %>% 
   hc_yAxis(title = list(text = "Relative to state average"),
            labels = list(format = "{value}%")) %>% 
   hc_xAxis(title = NULL) %>% 
@@ -876,12 +877,13 @@ DPMpopAvg %>%
          Group = recode(Group, "Minority" = "People of Color",
                         "No HS Dip" = "No HS Diploma")) %>% 
   hchart(., "bar", hcaes(x = Group, y = Pct, group = Status), 
-                         color = c("#F7A35C", "#7CB5EC")) %>% 
+                         color = c("#F7A35C", "#7CB5EC"),
+         pointWidth = 15) %>% 
   hc_yAxis(title = list(text = "Relative to state average"),
            labels = list(format = "{value}%")) %>% 
   hc_xAxis(title = NULL) %>% 
   hc_tooltip(pointFormat = "{point.y}% {series.name}") %>% 
-  hc_title(text = "Population-Weighted DPM Exposure")
+  hc_title(text = "Population-Weighted Diesel Particulate Matter Exposure")
 ```
 
 <br>
@@ -960,7 +962,8 @@ PTRAFpopAvg %>%
          Group = recode(Group, "Minority" = "People of Color",
                         "No HS Dip" = "No HS Diploma")) %>% 
   hchart(., "bar", hcaes(x = Group, y = Pct, group = Status), 
-                         color = c("#F7A35C", "#7CB5EC")) %>% 
+                         color = c("#F7A35C", "#7CB5EC"),
+         pointWidth = 15) %>% 
   hc_yAxis(title = list(text = "Relative to state average"),
            labels = list(format = "{value}%")) %>% 
   hc_xAxis(title = NULL) %>% 
@@ -993,18 +996,31 @@ For example, limited English speaking households (i.e., 'Limited English HH') in
 ### By municipality
 
 ```{r townTable, fig.align="center"}
+# create object to hold complex headers for table
+sketch1 = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(rowspan = 2, 'City/Town'),
+      th(colspan = 2, 'Avg PM2.5'),
+      th(colspan = 2, 'Avg Diesel Particulate Matter'),
+      th(colspan = 2, 'Avg Traffic Burden')
+    ),
+    tr(
+      lapply(rep(c('Value', 'Rank'), 3), th)
+    )
+  )
+))
+
 ma_towns %>% 
   as.data.frame() %>% 
-  filter(BGs80thPM25 > 0 | BGs80thDPM > 0 | BGs80thPTRAF > 0) %>% 
-  transmute(`City/Town` = NAME,
-            `PM2.5 Pct Rank` = round(pctrank_PM25_19.mean,0),
-            `PM2.5 BGs > 80th` = BGs80thPM25,
-            `DPM Pct Rank` = round(pctrank_DSLPM_19.mean,0),
-            `DPM BGs > 80th` = BGs80thDPM,
-            `PTRAF Pct Rank` = round(pctrank_PTRAF_19.mean,0),
-            `PTRAF BGs > 80th` = BGs80thPTRAF) %>% 
-  arrange(`City/Town`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+  filter(NAME != "County subdivisions not defined") %>%
+  select(NAME, PM25_19.mean, pctrank_PM25_19.mean, DSLPM_19.mean,
+         pctrank_DSLPM_19.mean, PTRAF_19.mean, pctrank_PTRAF_19.mean) %>% 
+  datatable(., rownames = FALSE, options = list(pageLength = 10), 
+            container = sketch1) %>% 
+  formatRound(., columns = c(2,3,5:7), digits = 1, mark = ",") %>% 
+  formatRound(., columns = 4, digits = 3, mark = ",")
 ```
 
 <!-- > Number of Census block groups with three or more cumualtive environmental burdens and high concentrations of populations of concern -->
@@ -1013,42 +1029,69 @@ ma_towns %>%
 ### By state house district
 
 ```{r houseTable, fig.align="center"}
+# create object to hold complex headers for table
+sketch2 = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(rowspan = 2, 'House District'),
+      th(colspan = 2, 'Avg PM2.5'),
+      th(colspan = 2, 'Avg Diesel Particulate Matter'),
+      th(colspan = 2, 'Avg Traffic Burden')
+    ),
+    tr(
+      lapply(rep(c('Value', 'Rank'), 3), th)
+    )
+  )
+))
+
 house_districts %>% 
   as.data.frame() %>% 
-  filter(BGs80thPM25 > 0 | BGs80thDPM > 0 | BGs80thPTRAF > 0) %>% 
-  transmute(`House District` = REP_DIST,
-            `PM2.5 Pct Rank` = round(pctrank_PM25_19.mean,0),
-            `PM2.5 BGs > 80th` = BGs80thPM25,
-            `DPM Pct Rank` = round(pctrank_DSLPM_19.mean,0),
-            `DPM BGs > 80th` = BGs80thDPM,
-            `PTRAF Pct Rank` = round(pctrank_PTRAF_19.mean,0),
-            `PTRAF BGs > 80th` = BGs80thPTRAF) %>% 
-  arrange(`House District`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+  select(REP_DIST, PM25_19.mean, pctrank_PM25_19.mean, DSLPM_19.mean,
+         pctrank_DSLPM_19.mean, PTRAF_19.mean, pctrank_PTRAF_19.mean) %>% 
+  datatable(., rownames = FALSE, options = list(pageLength = 10), 
+            container = sketch2) %>% 
+  formatRound(., columns = c(2,3,5:7), digits = 1, mark = ",") %>% 
+  formatRound(., columns = 4, digits = 3, mark = ",")
 ```
 
 
 ### By state senate district
 
 ```{r senateTable, fig.align="center"}
+# create object to hold complex headers for table
+sketch3 = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(rowspan = 2, 'Senate District'),
+      th(colspan = 2, 'Avg PM2.5'),
+      th(colspan = 2, 'Avg Diesel Particulate Matter'),
+      th(colspan = 2, 'Avg Traffic Burden')
+    ),
+    tr(
+      lapply(rep(c('Value', 'Rank'), 3), th)
+    )
+  )
+))
+
 senate_districts %>% 
   as.data.frame() %>% 
-  filter(BGs80thPM25 > 0 | BGs80thDPM > 0 | BGs80thPTRAF > 0) %>% 
-  transmute(`Senate District` = SEN_DIST,
-            `PM2.5 Pct Rank` = round(pctrank_PM25_19.mean,0),
-            `PM2.5 BGs > 80th` = BGs80thPM25,
-            `DPM Pct Rank` = round(pctrank_DSLPM_19.mean,0),
-            `DPM BGs > 80th` = BGs80thDPM,
-            `PTRAF Pct Rank` = round(pctrank_PTRAF_19.mean,0),
-            `PTRAF BGs > 80th` = BGs80thPTRAF) %>% 
-  arrange(`Senate District`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+  select(SEN_DIST, PM25_19.mean, pctrank_PM25_19.mean, DSLPM_19.mean,
+         pctrank_DSLPM_19.mean, PTRAF_19.mean, pctrank_PTRAF_19.mean) %>% 
+  datatable(., rownames = FALSE, options = list(pageLength = 10), 
+            container = sketch3) %>% 
+  formatRound(., columns = c(2,3,5:7), digits = 1, mark = ",") %>% 
+  formatRound(., columns = 4, digits = 3, mark = ",")
 ```
 
 
 ### About the tables
 
-These tables show two types of data:
+These tables show the average air pollution concentration values (micrograms per cubic meter of air) or average traffic burden scores (Proximity to High Traffic Corridors) by jurisdiction, along with the rank. A rank indicates the percentage of jurisdictions that are below that value. For example, Boston has a PM~2.5~ concentration value of 6.7 micrograms per cubic meter, and a PM~2.5~ rank of 93.4. The latter means that 93.4% of all other municipalities in the state have a lower average PM~2.5~ concentration. 
 
-* Percentile rank (Pct Rank) of mean pollutant concentrations or traffic proximity and volume scores for block groups within a given jurisdiction. The percentile rank indicates the percentage of other jurisdiction values that falls below that percentile. For example, a town with a PM~2.5~ percentile rank of 89 means that the average PM~2.5~ concentrations of block groups within that municipality is higher than 89% of the average PM~2.5~ concentrations of other municipalities in the state. 
-* The number of Census block groups (BGs) within a jurisdiction that have a high percentage of one or more priority population groups (80th percentile for the state) *AND* which experiences the highest level of emissions-related burdens (80th percentile for the state) for the respective emissions-related burdens.
+* PM~2.5~: Particulate matter in the air that is 2.5 microns or less in diameter (about 30 times smaller than the width of a human hair). These small particulates pose a threat to human health because they can penetrate deeply into the lungs and even enter the bloodstream. The EPA has documented that exposure to PM~2.5~ is associated with health effects such as elevated risk of premature mortality from cardiovascular diseases or lung cancer, and increased health problems such as asthma attacks.
+
+* Diesel Particulate Matter (DPM): Particulate matter generated from the combustion of diesel fuel; a surrogate measure of exposure for diesel exhaust more generally. Diesel exhaust is a complex mixture of thousands of gases and fine particles that contains more than 40 toxic air contaminants.  These include many known or suspected cancer-causing substances, such as benzene, arsenic and formaldehyde.
+
+* Traffic Proximity and Volume (PTRAF): An indicator of traffic exposure measured as residential proximity to roads weighted by traffic volume. More specifically, PTRAF is a count of vehicles (average annual daily traffic) at major roads within 500 meters of residential areas (i.e., Census Blocks) divided by distance in kilometers (km). Proximity to motor vehicle traffic is associated with greater exposure to toxic gases and particulate matter, as well as increased noise. Living near highly trafficked roads is related to increased risk of a variety of adverse health outcomes, including asthma, cardiovascular disease, hypertension, stroke, stress, and increased rates of mortality.
