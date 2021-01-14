@@ -520,7 +520,7 @@ leaflet() %>%
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
   addLegend(colors = "red",
-            labels = "No Bus Access + Hi Priority Pops",
+            labels = "No Bus Access for Priority Pops",
             position = "bottomleft") %>%
   setView(lng = -71.7, 42.1, zoom = 8) %>% 
   # addMiniMap() %>% 
@@ -649,7 +649,7 @@ leaflet() %>%
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
-  addLegend(title = "Highest Avg Headways<br>(minutes)", 
+  addLegend(title = "Highest Avg Headways (minutes)<br>for Priority Populations", 
             pal = palHwy,
             values = ma_blkgrps_sf_Hwy$AvgStopHeadway,
             position = "bottomleft",
@@ -792,7 +792,7 @@ leaflet() %>%
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
-  addLegend(title = "Least Walkable Scores", 
+  addLegend(title = "Least Walkable Scores<br>for Priority Populations", 
             pal = palWalk,
             values = ma_blkgrps_sf_Walk$NatWalkInd,
             position = "bottomleft",
@@ -931,7 +931,7 @@ leaflet() %>%
                 dashArray = "",
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
-  addLegend(title = "Highest Transport Cost Burdens<br>(% Household Income)", 
+  addLegend(title = "Highest Transport Cost Burdens<br>(% Household Income)<br>for Priority Populations", 
             pal = palTcost,
             values = ma_blkgrps_sf_Tcost$hh7_t,
             position = "bottomleft",
@@ -1191,6 +1191,7 @@ ma_towns %>%
             `Avg Headway (minutes)` = AvgStopHeadway.mean,
             `Avg Walkability` = NatWalkInd.mean,
             `Avg Transport Cost Burden` = hh7_t.mean/100) %>% 
+  replace_na(list(`Pct Bus Access` = 0)) %>% 
   arrange(`City/Town`) %>% 
   datatable(., rownames = FALSE, options = list(pageLength = 10)) %>% 
   formatRound(., columns = c(3,4), digits = 1, mark = ",") %>% 
@@ -1203,45 +1204,137 @@ ma_towns %>%
 ### By state house district
 
 ```{r houseTable, fig.align="center"}
+# calculate bus access pops per district
+busAccesbyHouse <- ma_busBuff400m_sf %>% 
+  transmute(NewPop = NewPop, OldArea = as.numeric(st_area(.))) %>% 
+  st_intersection(
+    st_make_valid(
+    st_transform(house_districts,st_crs(ma_busBuff400m_sf))
+    )
+    ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         BusPop = as.integer(NewPop*Proportion)) %>% 
+  as.data.frame() %>% 
+  group_by(REP_DIST) %>% 
+  summarize(BusPop = sum(BusPop))
+
+# create pop totals for each district
+house_names_pops <- ma_blkgrps_sf %>% 
+  st_transform(.,st_crs(ma_busBuff400m_sf)) %>% 
+  select(totalpopE) %>% 
+  mutate(OldArea = as.numeric(st_area(.))) %>% 
+    st_intersection(
+      st_make_valid(
+        st_transform(house_districts,st_crs(ma_busBuff400m_sf))
+        )
+      ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         NewPop = totalpopE*Proportion) %>% 
+  as.data.frame() %>% 
+  group_by(REP_DIST) %>% 
+  summarize(totalpopE = sum(NewPop))
+
+# calculate pct of pop with bus access per district
+house_busAccess_pct <- busAccesbyHouse %>% 
+  left_join(., house_names_pops, by = "REP_DIST") %>% 
+  mutate(PctBusAccess = BusPop/totalpopE*100)
+
+# make table
 house_districts %>% 
   as.data.frame() %>% 
-  # filter(BGs80thPM25 > 0 | BGs80thDPM > 0 | BGs80thPTRAF > 0) %>% 
+  left_join(., house_busAccess_pct, by = "REP_DIST") %>% 
   transmute(`House District` = REP_DIST,
-            `No Bus BGs` = BGsNoBus,
-            `Bus Headway Pct Rank` = round(pctrank_AvgStopHeadway.mean,0),
-            `Bus Headway BGs > 80th` = BGs80thHwy,
-            `Walkability Pct Rank` = round(pctrank_NatWalkInd.mean,0),
-            `Least Walkable BGs` = BGsLWalk,
-            `Cost Burden Pct Rank` = round(pctrank_hh7_t.mean,0),
-            `Cost Burden BGs > 80th` = BGs80thTcost) %>% 
+            `Pct Bus Access` = PctBusAccess/100,
+            `Avg Headway (minutes)` = AvgStopHeadway.mean,
+            `Avg Walkability` = NatWalkInd.mean,
+            `Avg Transport Cost Burden` = hh7_t.mean/100) %>% 
+  replace_na(list(`Pct Bus Access` = 0)) %>% 
   arrange(`House District`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+  datatable(., rownames = FALSE, options = list(pageLength = 10)) %>% 
+  formatRound(., columns = c(3,4), digits = 1, mark = ",") %>% 
+  formatPercentage(., columns = c(2,5), digits = 1)
 ```
 
 
 ### By state senate district
 
 ```{r senateTable, fig.align="center"}
+# calculate bus access pops per district
+busAccesbySenate <- ma_busBuff400m_sf %>% 
+  transmute(NewPop = NewPop, OldArea = as.numeric(st_area(.))) %>% 
+  st_intersection(
+    st_make_valid(
+    st_transform(senate_districts,st_crs(ma_busBuff400m_sf))
+    )
+    ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         BusPop = as.integer(NewPop*Proportion)) %>% 
+  as.data.frame() %>% 
+  group_by(SEN_DIST) %>% 
+  summarize(BusPop = sum(BusPop))
+
+# create pop totals for each district
+senate_names_pops <- ma_blkgrps_sf %>% 
+  st_transform(.,st_crs(ma_busBuff400m_sf)) %>% 
+  select(totalpopE) %>% 
+  mutate(OldArea = as.numeric(st_area(.))) %>% 
+    st_intersection(
+      st_make_valid(
+        st_transform(senate_districts,st_crs(ma_busBuff400m_sf))
+        )
+      ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         NewPop = totalpopE*Proportion) %>% 
+  as.data.frame() %>% 
+  group_by(SEN_DIST) %>% 
+  summarize(totalpopE = sum(NewPop))
+
+# calculate pct of pop with bus access per district
+senate_busAccess_pct <- busAccesbySenate %>% 
+  left_join(., senate_names_pops, by = "SEN_DIST") %>% 
+  mutate(PctBusAccess = BusPop/totalpopE*100)
+
+# make table
 senate_districts %>% 
   as.data.frame() %>% 
-  # filter(BGs80thPM25 > 0 | BGs80thDPM > 0 | BGs80thPTRAF > 0) %>% 
+  left_join(., senate_busAccess_pct, by = "SEN_DIST") %>% 
   transmute(`Senate District` = SEN_DIST,
-            `No Bus BGs` = BGsNoBus,
-            `Bus Headway Pct Rank` = round(pctrank_AvgStopHeadway.mean,0),
-            `Bus Headway BGs > 80th` = BGs80thHwy,
-            `Walkability Pct Rank` = round(pctrank_NatWalkInd.mean,0),
-            `Least Walkable BGs` = BGsLWalk,
-            `Cost Burden Pct Rank` = round(pctrank_hh7_t.mean,0),
-            `Cost Burden BGs > 80th` = BGs80thTcost) %>% 
+            `Pct Bus Access` = PctBusAccess/100,
+            `Avg Headway (minutes)` = AvgStopHeadway.mean,
+            `Avg Walkability` = NatWalkInd.mean,
+            `Avg Transport Cost Burden` = hh7_t.mean/100) %>% 
+  replace_na(list(`Pct Bus Access` = 0)) %>% 
   arrange(`Senate District`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+  datatable(., rownames = FALSE, options = list(pageLength = 10)) %>% 
+  formatRound(., columns = c(3,4), digits = 1, mark = ",") %>% 
+  formatPercentage(., columns = c(2,5), digits = 1)
 ```
 
 
 ### About the tables
 
-These tables show two types of data - percentile rankings and counts of block groups exceeding a threshold:
+These tables show four separate measures of transport accessibility or adequacy:
 
-* Percentile rank (Pct Rank) of mean transportation metric values or scores for block groups within a given jurisdiction. The percentile rank indicates the percentage of other jurisdiction values that falls below that percentile. The significance of the percentile depends on the metric. For example, a town with a Bus Headway percentile rank of 89 means that the average bus headways (i.e., time between bus arrivals) of block groups within that municipality is longer (i.e, worse) than 89% of the average bus headways of other municipalities in the state. By contrast, a town with a Walkability percentile rank of 89 means that the average walkability scores of block groups within that municipality is higher (i.e., better) than 89% of the average walkability scores of other municipalities in the state.
+* Pct Bus Access. Average percentage of the population within walking distance of a bus stop.
 
-* The number of Census block groups (**BGs**) within a jurisdiction that have a high percentage of one or more priority population groups (80th percentile for the state) *AND* which experiences the highest level of transportation burdens (80th percentile for the state) or exceed a threshold (e.g, 'no bus access', 'least walkable' score) for the respective metric. For example, a town with a value of 2 under the **No Bus BGs** column means that there are two Census block groups in that town that have a high percentage of one or more priority population groups (80th percentile for the state) *AND* these people have no reasonable access to bus service (i.e., live more than 1 mile from the nearest bus stop). Similarly, a state house district with a value of 20 under the **Least Walkable BGs** column means that there are 20 Census block groups in that house district that have a high percentage of one or more priority population groups (80th percentile for the state) *AND* these block groups have Walkability scores that place them in the 'Least Walkable' category (i.e., a score of 5.7 or lower as defined by the EPA).
+* Avg Headway. The average headway (i.e., time between bus arrivals) for Census block groups in that jurisdiction. 
+
+* Avg Walkability. The average walkability score, according to the EPA's National Walkability Index, of Census block groups in the jurisdiction. Scores range from 1 to 20, with higher scores indicating more walkable neighborhoods. Scores above 10.5 are considered "above average walkable." Scores below 5.7 are considered "least walkable."
+
+* Avg Transport Cost Burden. Average percentage of household income for a moderate income household that would be needed to cover transportation costs. Nationally, households spend approximately 16% of their income on transportation.
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
