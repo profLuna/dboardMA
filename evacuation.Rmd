@@ -21,6 +21,7 @@ library(DT)
 options(DT.options = list(lengthMenu = c(10, 20, 50, 100)))
 library(highcharter)
 library(rmapshaper)
+library(tidycensus)
 ```
 
 ```{r data, include=FALSE, cache=TRUE}
@@ -178,61 +179,230 @@ EJbgs <- ma_blkgrps_sf %>%
          hevacRisk = if_else(is.na(hevacRisk), "No", "Yes")) %>% 
   ms_simplify(., keep = 0.1, keep_shapes = TRUE)
 
-# Create counts of block groups in FEMA flood zones by jurisdiction
-muniNFHZA <- ma_blkgrps_sf %>% 
-  as.data.frame() %>% 
-  filter(nfhzaRisk == "F" & POPSlabel != "No Pops of Concern") %>%
-  group_by(TOWN) %>% 
-  summarize(BGsNFHZA = n())
 
-houseNFHZA <- ma_blkgrps_sf %>% 
+# Calculate Pop and Pct pop at risk by jurisdiction
+NFHZAbyTown <- ma_blkgrps_nfhza %>% 
+  transmute(NewPop = NewPop, OldArea = as.numeric(st_area(.))) %>% 
+  st_intersection(st_transform(ma_towns, st_crs(ma_blkgrps_nfhza))) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         nfhzaPop = as.integer(NewPop*Proportion)) %>% 
   as.data.frame() %>% 
-  filter(nfhzaRisk == "F" & POPSlabel != "No Pops of Concern") %>%
+  group_by(NAME) %>% 
+  summarize(nfhzaPop = sum(nfhzaPop))
+
+# download town pops from tidycensus
+town_pops <- get_acs(geography = "county subdivision", survey = "acs5",
+                     variables = c(totalpop = "B03002_001"),
+                     state = "MA", output = "wide", year = 2018) %>% 
+  select(GEOID, totalpopE)
+
+# grab municipal boundaries from TIGRIS
+ma_towns_sf <- county_subdivisions(state = "MA", cb = TRUE) %>% 
+  st_transform(., crs = 26986)
+
+# create df with town names from tigris and pops from tidycensus
+town_nfhzaPop_pct <- ma_towns_sf %>% 
+  as.data.frame() %>% 
+  left_join(., town_pops, by = "GEOID") %>% 
+  select(NAME, totalpopE) %>% 
+  left_join(., NFHZAbyTown,by = "NAME") %>% 
+  mutate(PctPopNFHZA = if_else(is.na(nfhzaPop), 0, nfhzaPop/totalpopE*100))
+
+
+# repeat for hurricanes
+# Calculate Pop and Pct pop at risk by jurisdiction
+HEVACbyTown <- ma_blkgrps_hevac %>% 
+  transmute(NewPop = NewPop, OldArea = as.numeric(st_area(.))) %>% 
+  st_intersection(st_transform(ma_towns, st_crs(ma_blkgrps_hevac))) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         hevacPop = as.integer(NewPop*Proportion)) %>% 
+  as.data.frame() %>% 
+  group_by(NAME) %>% 
+  summarize(hevacPop = sum(hevacPop))
+
+# calc pct at risk from HEVAC and join with FEMA numbers
+town_floodPop_pct <- town_nfhzaPop_pct %>% 
+  left_join(., HEVACbyTown, by = "NAME") %>% 
+  mutate(PctPopHEVAC = if_else(is.na(hevacPop), 0, hevacPop/totalpopE*100))
+
+
+# calculate flood pops by house district
+# create pop totals for each district
+house_names_pops <- get_acs(geography = "block group", survey = "acs5",
+                     variables = c(totalpop = "B03002_001"), state = "MA", 
+                     output = "wide", year = 2018, geometry = TRUE) %>% 
+  select(GEOID, totalpopE) %>% 
+  st_transform(.,st_crs(ma_blkgrps_nfhza)) %>% 
+  select(totalpopE) %>% 
+  mutate(OldArea = as.numeric(st_area(.))) %>% 
+    st_intersection(
+      st_make_valid(
+        st_transform(house_districts,st_crs(ma_blkgrps_nfhza))
+        )
+      ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         NewPop = totalpopE*Proportion) %>% 
+  as.data.frame() %>% 
   group_by(REP_DIST) %>% 
-  summarize(BGsNFHZA = n())
+  summarize(totalpopE = sum(NewPop))
 
-senateNFHZA <- ma_blkgrps_sf %>% 
+# identify FEMA risk pops by district and calculate pop pct
+NFHZAbyHouse <- ma_blkgrps_nfhza %>% 
+  transmute(NewPop = NewPop, OldArea = as.numeric(st_area(.))) %>% 
+  st_intersection(
+    st_make_valid(
+      st_transform(house_districts, st_crs(ma_blkgrps_nfhza))
+      )
+    ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         nfhzaPop = as.integer(NewPop*Proportion)) %>% 
   as.data.frame() %>% 
-  filter(nfhzaRisk == "F" & POPSlabel != "No Pops of Concern") %>%
-  group_by(SEN_DIST) %>% 
-  summarize(BGsNFHZA = n())
-
-# Create counts of block groups hurricane evac zones by jurisdiction
-muniHEVAC <- ma_blkgrps_sf %>% 
-  as.data.frame() %>% 
-  filter(hevacRisk == "H" & POPSlabel != "No Pops of Concern") %>% 
-  group_by(TOWN) %>% 
-  summarize(BGsHEVAC = n())
-
-houseHEVAC <- ma_blkgrps_sf %>% 
-  as.data.frame() %>% 
-  filter(hevacRisk == "H" & POPSlabel != "No Pops of Concern") %>% 
   group_by(REP_DIST) %>% 
-  summarize(BGsHEVAC = n())
+  summarize(nfhzaPop = sum(nfhzaPop)) %>% 
+  left_join(house_names_pops, ., by = "REP_DIST") %>% 
+  replace_na(list(nfhzaPop = 0)) %>% 
+  mutate(PctPopNFHZA = nfhzaPop/totalpopE*100)
 
-senateHEVAC <- ma_blkgrps_sf %>% 
+# identify HEVAC risk pops by district and calculate pop pct, and bring together with FEMA
+house_floodPop_pct <- ma_blkgrps_hevac %>% 
+  transmute(NewPop = NewPop, OldArea = as.numeric(st_area(.))) %>% 
+  st_intersection(
+    st_make_valid(
+      st_transform(house_districts, st_crs(ma_blkgrps_hevac))
+      )
+    ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         hevacPop = as.integer(NewPop*Proportion)) %>% 
   as.data.frame() %>% 
-  filter(hevacRisk == "H" & POPSlabel != "No Pops of Concern") %>% 
+  group_by(REP_DIST) %>% 
+  summarize(hevacPop = sum(hevacPop)) %>% 
+  left_join(house_names_pops, ., by = "REP_DIST") %>% 
+  replace_na(list(hevacPop = 0)) %>% 
+  mutate(PctPopHEVAC = hevacPop/totalpopE*100) %>% 
+  left_join(NFHZAbyHouse, ., by = "REP_DIST") %>% 
+  select(-starts_with("totalpopE"))
+
+
+# calculate flood pops by senate district
+# create pop totals for each district
+senate_names_pops <- get_acs(geography = "block group", survey = "acs5",
+                     variables = c(totalpop = "B03002_001"), state = "MA", 
+                     output = "wide", year = 2018, geometry = TRUE) %>% 
+  select(GEOID, totalpopE) %>% 
+  st_transform(.,st_crs(ma_blkgrps_nfhza)) %>% 
+  select(totalpopE) %>% 
+  mutate(OldArea = as.numeric(st_area(.))) %>% 
+    st_intersection(
+      st_make_valid(
+        st_transform(senate_districts,st_crs(ma_blkgrps_nfhza))
+        )
+      ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         NewPop = totalpopE*Proportion) %>% 
+  as.data.frame() %>% 
   group_by(SEN_DIST) %>% 
+  summarize(totalpopE = sum(NewPop))
+
+# identify FEMA risk pops by district and calculate pop pct
+NFHZAbySenate <- ma_blkgrps_nfhza %>% 
+  transmute(NewPop = NewPop, OldArea = as.numeric(st_area(.))) %>% 
+  st_intersection(
+    st_make_valid(
+      st_transform(senate_districts, st_crs(ma_blkgrps_nfhza))
+      )
+    ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         nfhzaPop = as.integer(NewPop*Proportion)) %>% 
+  as.data.frame() %>% 
+  group_by(SEN_DIST) %>% 
+  summarize(nfhzaPop = sum(nfhzaPop)) %>% 
+  left_join(senate_names_pops, ., by = "SEN_DIST") %>% 
+  replace_na(list(nfhzaPop = 0)) %>% 
+  mutate(PctPopNFHZA = nfhzaPop/totalpopE*100)
+
+# identify HEVAC risk pops by district and calculate pop pct, and bring together with FEMA
+senate_floodPop_pct <- ma_blkgrps_hevac %>% 
+  transmute(NewPop = NewPop, OldArea = as.numeric(st_area(.))) %>% 
+  st_intersection(
+    st_make_valid(
+      st_transform(senate_districts, st_crs(ma_blkgrps_hevac))
+      )
+    ) %>% 
+  mutate(NewArea = as.numeric(st_area(.)),
+         Proportion = NewArea/OldArea,
+         hevacPop = as.integer(NewPop*Proportion)) %>% 
+  as.data.frame() %>% 
+  group_by(SEN_DIST) %>% 
+  summarize(hevacPop = sum(hevacPop)) %>% 
+  left_join(senate_names_pops, ., by = "SEN_DIST") %>% 
+  replace_na(list(hevacPop = 0)) %>% 
+  mutate(PctPopHEVAC = hevacPop/totalpopE*100) %>% 
+  left_join(NFHZAbySenate, ., by = "SEN_DIST") %>% 
+  select(-starts_with("totalpopE"))
+
+
+# Create counts of block groups in FEMA flood zones by jurisdiction for popup 
+muniNFHZA <- ma_blkgrps_sf %>%
+  as.data.frame() %>%
+  filter(nfhzaRisk == "F" & POPSlabel != "No Pops of Concern") %>%
+  group_by(TOWN) %>%
+  summarize(BGsNFHZA = n())
+
+houseNFHZA <- ma_blkgrps_sf %>%
+  as.data.frame() %>%
+  filter(nfhzaRisk == "F" & POPSlabel != "No Pops of Concern") %>%
+  group_by(REP_DIST) %>%
+  summarize(BGsNFHZA = n())
+
+senateNFHZA <- ma_blkgrps_sf %>%
+  as.data.frame() %>%
+  filter(nfhzaRisk == "F" & POPSlabel != "No Pops of Concern") %>%
+  group_by(SEN_DIST) %>%
+  summarize(BGsNFHZA = n())
+
+# Create counts of block groups in hurricane evac zones by jurisdiction for popup
+muniHEVAC <- ma_blkgrps_sf %>%
+  as.data.frame() %>%
+  filter(hevacRisk == "H" & POPSlabel != "No Pops of Concern") %>%
+  group_by(TOWN) %>%
   summarize(BGsHEVAC = n())
 
-# join stats to jurisdiction layers
+houseHEVAC <- ma_blkgrps_sf %>%
+  as.data.frame() %>%
+  filter(hevacRisk == "H" & POPSlabel != "No Pops of Concern") %>%
+  group_by(REP_DIST) %>%
+  summarize(BGsHEVAC = n())
+
+senateHEVAC <- ma_blkgrps_sf %>%
+  as.data.frame() %>%
+  filter(hevacRisk == "H" & POPSlabel != "No Pops of Concern") %>%
+  group_by(SEN_DIST) %>%
+  summarize(BGsHEVAC = n())
+
+# simplify layers for faster loading and join BG stats
 ma_towns <- ma_towns %>% 
-  left_join(., muniNFHZA, by = c("NAME" = "TOWN")) %>% 
-  left_join(., muniHEVAC, by = c("NAME" = "TOWN")) %>% 
-  replace_na(list(BGsNFHZA = 0, BGsHEVAC = 0)) %>% 
+  left_join(., muniNFHZA, by = c("NAME" = "TOWN")) %>%
+  left_join(., muniHEVAC, by = c("NAME" = "TOWN")) %>%
+  replace_na(list(BGsNFHZA = 0, BGsHEVAC = 0)) %>%
   ms_simplify(., keep = 0.1, keep_shapes = TRUE)
 
 house_districts <- house_districts %>% 
-  left_join(., houseNFHZA, by = "REP_DIST") %>% 
-  left_join(., houseHEVAC, by = "REP_DIST") %>% 
-  replace_na(list(BGsNFHZA = 0, BGsHEVAC = 0)) %>% 
+  left_join(., houseNFHZA, by = "REP_DIST") %>%
+  left_join(., houseHEVAC, by = "REP_DIST") %>%
+  replace_na(list(BGsNFHZA = 0, BGsHEVAC = 0)) %>%
   ms_simplify(., keep = 0.1, keep_shapes = TRUE)
 
 senate_districts <- senate_districts %>% 
-  left_join(., senateNFHZA, by = "SEN_DIST") %>% 
-  left_join(., senateHEVAC, by = "SEN_DIST") %>% 
-  replace_na(list(BGsNFHZA = 0, BGsHEVAC = 0)) %>% 
+  left_join(., senateNFHZA, by = "SEN_DIST") %>%
+  left_join(., senateHEVAC, by = "SEN_DIST") %>%
+  replace_na(list(BGsNFHZA = 0, BGsHEVAC = 0)) %>%
   ms_simplify(., keep = 0.1, keep_shapes = TRUE)
 
 # create layer of ma_blkgrps_sf for flood and hurricane
@@ -596,14 +766,30 @@ For example, if 10% of the developed area of a Census Block Group  intersected/o
 ### By municipality
 
 ```{r townTable, fig.align="center"}
-ma_towns %>% 
-  as.data.frame() %>% 
-  # filter(BGs80thDayNight > 0 | BGs80thDPM > 0 | BGs80thPTRAF > 0) %>% 
-  transmute(`City/Town` = NAME,
-            `FEMA Flood BGs` = BGsNFHZA,
-            `Hurricane Evac BGs` = BGsHEVAC) %>% 
-  arrange(`City/Town`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+# create object to hold complex headers for table
+sketch1 = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(rowspan = 2, 'City/Town'),
+      th(colspan = 2, 'FEMA Flood Risk'),
+      th(colspan = 2, 'Hurricane Evacuation Risk')
+    ),
+    tr(
+      lapply(rep(c('Pop', 'Pct'), 2), th)
+    )
+  )
+))
+
+town_floodPop_pct %>% 
+  mutate(PctPopNFHZA = PctPopNFHZA/100,
+         PctPopHEVAC = PctPopHEVAC/100) %>% 
+  select(-totalpopE) %>% 
+  arrange(NAME) %>% 
+  datatable(., rownames = FALSE, options = list(pageLength = 10), 
+            container = sketch1) %>% 
+  formatRound(., columns = c(2,4), digits = 0, mark = ",") %>% 
+  formatPercentage(., columns = c(3,5), digits = 1)
 ```
 
 <!-- > Number of Census block groups with three or more cumualtive environmental burdens and high concentrations of populations of concern -->
@@ -614,14 +800,29 @@ ma_towns %>%
 ### By state house district
 
 ```{r houseTable, fig.align="center"}
-house_districts %>% 
-  as.data.frame() %>% 
-  # filter(BGs80thDayNight > 0 | BGs80thUHI24h > 0 | BGs80thNight > 0) %>% 
-  transmute(`House District` = REP_DIST,
-            `FEMA Flood BGs` = BGsNFHZA,
-            `Hurricane Evac BGs` = BGsHEVAC) %>% 
-  arrange(`House District`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+# create object to hold complex headers for table
+sketch2 = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(rowspan = 2, 'House District'),
+      th(colspan = 2, 'FEMA Flood Risk'),
+      th(colspan = 2, 'Hurricane Evacuation Risk')
+    ),
+    tr(
+      lapply(rep(c('Pop', 'Pct'), 2), th)
+    )
+  )
+))
+
+house_floodPop_pct %>% 
+  mutate(PctPopNFHZA = PctPopNFHZA/100,
+         PctPopHEVAC = PctPopHEVAC/100) %>%  
+  arrange(REP_DIST) %>% 
+  datatable(., rownames = FALSE, options = list(pageLength = 10), 
+            container = sketch2) %>% 
+  formatRound(., columns = c(2,4), digits = 0, mark = ",") %>% 
+  formatPercentage(., columns = c(3,5), digits = 1)
 ```
 
 <br>
@@ -631,14 +832,29 @@ house_districts %>%
 ### By state senate district
 
 ```{r senateTable, fig.align="center"}
-senate_districts %>% 
-  as.data.frame() %>% 
-  # filter(BGs80thDayNight > 0 | BGs80thUHI24h > 0 | BGs80thNight > 0) %>% 
-  transmute(`Senate District` = SEN_DIST,
-            `FEMA Flood BGs` = BGsNFHZA,
-            `Hurricane Evac BGs` = BGsHEVAC) %>% 
-  arrange(`Senate District`) %>% 
-  datatable(., rownames = FALSE, options = list(pageLength = 10))
+# create object to hold complex headers for table
+sketch3 = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(rowspan = 2, 'Senate District'),
+      th(colspan = 2, 'FEMA Flood Risk'),
+      th(colspan = 2, 'Hurricane Evacuation Risk')
+    ),
+    tr(
+      lapply(rep(c('Pop', 'Pct'), 2), th)
+    )
+  )
+))
+
+senate_floodPop_pct %>% 
+  mutate(PctPopNFHZA = PctPopNFHZA/100,
+         PctPopHEVAC = PctPopHEVAC/100) %>%  
+  arrange(SEN_DIST) %>% 
+  datatable(., rownames = FALSE, options = list(pageLength = 10), 
+            container = sketch3) %>% 
+  formatRound(., columns = c(2,4), digits = 0, mark = ",") %>% 
+  formatPercentage(., columns = c(3,5), digits = 1)
 ```
 
 <br>
@@ -647,6 +863,24 @@ senate_districts %>%
 
 ### About the tables
 
-These tables show counts of block groups containing high percentages (i.e., 80th percentile) of priority populations living within flood risk or hurricane evaucation zones:
+These tables show the number and percentage of population by jurisdiction exposed to FEMA flood risk or hurricane evacuation risk. FEMA flood risk is calculated as the percentage of a Census block group that falls within 100-year or 500-year flood risk zones and aggregated by jurisdiction. Hurricane evacuation risk is calculated as the percentage of a Census block group that falls within hurricane evacuation zones identified by the Massachusetts Emergency Management Agency and U.S. Army Corps of Engineers, and aggregated by jurisdiction. Population values are derived from the American Community Survey 5-year estimates for 2014-2018.
 
-* The number of Census block groups (**BGs**) within a jurisdiction that have a high percentage of one or more priority population groups (80th percentile for the state) which reside in flood risk or hurricane evacuation zones. For example, a town with a value of 2 under the **FEMA Flood BGs** column means that there are two Census block groups in that town that have a high percentage of one or more priority population groups (80th percentile for the state) living within FEMA-designated flood risk zones at either the 1% AEP ('100-year flood') or 0.2% AEP ('500-year flood'). 
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
+
+<br>
