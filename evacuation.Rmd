@@ -207,7 +207,8 @@ town_nfhzaPop_pct <- ma_towns_sf %>%
   left_join(., town_pops, by = "GEOID") %>% 
   select(NAME, totalpopE) %>% 
   left_join(., NFHZAbyTown,by = "NAME") %>% 
-  mutate(PctPopNFHZA = if_else(is.na(nfhzaPop), 0, nfhzaPop/totalpopE*100))
+  replace_na(list(nfhzaPop = 0)) %>% 
+  mutate(PctPopNFHZA = nfhzaPop/totalpopE*100)
 
 
 # repeat for hurricanes
@@ -225,7 +226,8 @@ HEVACbyTown <- ma_blkgrps_hevac %>%
 # calc pct at risk from HEVAC and join with FEMA numbers
 town_floodPop_pct <- town_nfhzaPop_pct %>% 
   left_join(., HEVACbyTown, by = "NAME") %>% 
-  mutate(PctPopHEVAC = if_else(is.na(hevacPop), 0, hevacPop/totalpopE*100))
+  replace_na(list(hevacPop = 0)) %>% 
+  mutate(PctPopHEVAC = hevacPop/totalpopE*100)
 
 
 # calculate flood pops by house district
