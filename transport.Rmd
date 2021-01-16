@@ -418,7 +418,7 @@ The most important benefit of a transportation system is the access it provides 
 ## Transportation Adequacy & Priority Populations by Census block group {.tabset}
 
 ### Bus Access
-```{r mapBus, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND no bus stops within 1 mile."}
+```{r mapBus, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND no bus stops within 1 mile."}
 # # create color palette
 # palPM25 <- colorQuantile(
 #   palette = "YlOrRd",
@@ -430,6 +430,16 @@ The most important benefit of a transportation system is the access it provides 
 #   domain = ma_blkgrps_sf_PM25$PM25_19,
 #   bins = 5, pretty = FALSE
 # )
+
+# create simplified towns layer for faster mapping
+# download state outline
+ma_state <- states(cb = TRUE) %>% 
+  filter(NAME == "Massachusetts")
+# filter out extra polygons, clip out boundaries from water, simplify
+ma_towns_simple <- ma_towns %>% 
+  filter(NAME != "County subdivisions not defined") %>% 
+  ms_clip(., ma_state) %>% 
+  ms_simplify(., keep = 0.1, keep_shapes = TRUE)
 
 PopupEJ_NoBus <- paste0(EJbgs$NAME, "<br/>",
                       "<b>Town:</b> ", EJbgs$TOWN, "<br/>",
@@ -448,9 +458,9 @@ Popup <- paste0(ma_blkgrps_sf_NoBus$NAME, "<br/>",
                       "<b>Town:</b> ", ma_blkgrps_sf_NoBus$TOWN, "<br/>",
                       "<b>Priority Populations: </b>", ma_blkgrps_sf_NoBus$POPSlabel)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
-  addPolygons(data = ma_towns,
+  addPolygons(data = ma_towns_simple,
               weight = 0.7,
               opacity = 1,
               color = "gray",
@@ -539,7 +549,17 @@ leaflet() %>%
 <br>
 
 ### Headways
-```{r mapHwy, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest average bus headways in the state."}
+```{r mapHwy, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest average bus headways in the state."}
+# # create simplified towns layer for faster mapping
+# # download state outline
+# ma_state <- states(cb = TRUE) %>% 
+#   filter(NAME == "Massachusetts")
+# # filter out extra polygons, clip out boundaries from water, simplify
+# ma_towns_simple <- ma_towns %>% 
+#   filter(NAME != "County subdivisions not defined") %>% 
+#   ms_clip(., ma_state) %>% 
+#   ms_simplify(., keep = 0.1, keep_shapes = TRUE)
+
 # create color palette
 palHwy <- colorQuantile(
   palette = "YlOrRd",
@@ -578,9 +598,9 @@ Popup <- paste0(ma_blkgrps_sf_Hwy$NAME, "<br/>",
          "<b>Headway percentile:</b> ", round(ma_blkgrps_sf_Hwy$Headwaypctile,0), "<br/>",
                       "<b>Priority Populations: </b>", ma_blkgrps_sf_Hwy$POPSlabel)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
-  addPolygons(data = ma_towns,
+  addPolygons(data = ma_towns_simple,
               weight = 0.7,
               opacity = 1,
               color = "gray",
@@ -678,7 +698,7 @@ leaflet() %>%
 <br>
 
 ### Walkability
-```{r mapWalk, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND least walkable scores."}
+```{r mapWalk, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND least walkable scores."}
 # create color palette
 palWalk <- colorQuantile(
   palette = "YlOrRd",
@@ -721,9 +741,9 @@ Popup <- paste0(ma_blkgrps_sf_Walk$NAME, "<br/>",
          "<b>Walkability percentile:</b> ", round(ma_blkgrps_sf_Walk$Walkpctile,0), "<br/>",
                       "<b>Priority Populations: </b>", ma_blkgrps_sf_Walk$POPSlabel)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
-  addPolygons(data = ma_towns,
+  addPolygons(data = ma_towns_simple,
               weight = 0.7,
               opacity = 1,
               color = "gray",
@@ -821,7 +841,7 @@ leaflet() %>%
 <br>
 
 ### Cost Burden
-```{r mapTcost, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest transportation cost burden as a percentage of household income."}
+```{r mapTcost, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest transportation cost burden as a percentage of household income."}
 # create color palette
 palTcost <- colorQuantile(
   palette = "YlOrRd",
@@ -860,9 +880,9 @@ Popup <- paste0(ma_blkgrps_sf_Tcost$NAME, "<br/>",
                       "<b>Avg Transport Cost Burden percentile: </b>", round(ma_blkgrps_sf_Tcost$Tcostpctile,1), "<br/>",
                       "<b>Priority Populations: </b>", ma_blkgrps_sf_Tcost$POPSlabel)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
-  addPolygons(data = ma_towns,
+  addPolygons(data = ma_towns_simple,
               weight = 0.7,
               opacity = 1,
               color = "gray",
@@ -1319,9 +1339,9 @@ senate_districts %>%
 
 These tables show four separate measures of transport accessibility or adequacy:
 
-* Pct Bus Access. Average percentage of the population within walking distance of a bus stop.
+* Pct Bus Access. Average percentage of the general population within walking distance of a bus stop for Census block groups in that jurisdiction.
 
-* Avg Headway. The average headway (i.e., time between bus arrivals) for Census block groups in that jurisdiction. 
+* Avg Headway. Average headway (i.e., time between bus arrivals) for Census block groups in that jurisdiction. 
 
 * Avg Walkability. The average walkability score, according to the EPA's National Walkability Index, of Census block groups in the jurisdiction. Scores range from 1 to 20, with higher scores indicating more walkable neighborhoods. Scores above 10.5 are considered "above average walkable." Scores below 5.7 are considered "least walkable."
 
