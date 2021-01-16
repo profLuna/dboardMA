@@ -51,10 +51,16 @@ meta() %>%
 # load("DATA/ne_layers.rds")
 ma_blkgrps_sf <- readRDS(file = "../DATA/ma_blkgrps_sf_CUM.Rds")
 
+# download state outline
+ma_state <- states(cb = TRUE) %>% 
+  filter(NAME == "Massachusetts")
+
 #create layer of municipalities
 ma_towns <- county_subdivisions("MA") %>% 
   st_transform(., crs = 4326) %>% 
   select(NAME,NAMELSAD) %>% 
+  filter(NAME != "County subdivisions not defined") %>% 
+  ms_clip(., ma_state) %>% 
   ms_simplify(., keep = 0.1, keep_shapes = TRUE) 
 
 # Assign municipality names to block groups
@@ -185,7 +191,7 @@ These interactive figures identify communities across Massachusetts that are mos
 
 ### Map
 ```{r map, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND exposed to the highest levels of 1 - 4 cumulative environmental burdens (e.g., emissions, lack of transport access, heat risk, flood evacuation risk)."}
-# create labeling for map of cumulative burden scores
+# create labeling variable for map of cumulative burden scores. Note that for some reason that I can't fathom, the legend items will be displayed out of alignment if I try to manually add labels in the labels parameter for addLegend. 
 ma_blkgrps_sf <- ma_blkgrps_sf %>% 
   mutate(BurdenCountLabel = 
            if_else(BurdenCount == 1, 
