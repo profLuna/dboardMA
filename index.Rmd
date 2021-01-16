@@ -184,10 +184,17 @@ These interactive figures identify communities across Massachusetts that are mos
 ## Cumulative burdens by Census block group {.tabset}
 
 ### Map
-```{r map, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND exposed to the highest levels of 1 - 4 cumulative environmental burdens (e.g., emissions, lack of transport access, heat risk, flood evacuation risk."}
+```{r map, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND exposed to the highest levels of 1 - 4 cumulative environmental burdens (e.g., emissions, lack of transport access, heat risk, flood evacuation risk)."}
+# create labeling for map of cumulative burden scores
+ma_blkgrps_sf <- ma_blkgrps_sf %>% 
+  mutate(BurdenCountLabel = 
+           if_else(BurdenCount == 1, 
+                   paste0(BurdenCount," Hi Burden + Hi Priority Pops"),
+                   paste0(BurdenCount," Hi Burdens + Hi Priority Pops")))
+
 pal <- colorFactor(
   palette = "YlOrRd",
-  domain = ma_blkgrps_sf$BurdenCount)
+  domain = ma_blkgrps_sf$BurdenCountLabel)
 
 # alternatively, create a colors vector to pair with arbitrary labels
 colors <- brewer.pal(n = 4, "YlOrRd")
@@ -212,7 +219,7 @@ Popup <- paste0(ma_blkgrps_sf$NAME, "<br/>",
                       "<b>Burden Categories: </b>", ma_blkgrps_sf$BURDENSlabel,"<br/>",
                       "<b>Priority Populations: </b>", ma_blkgrps_sf$POPSlabel)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
   addPolygons(data = ma_towns,
               weight = 0.7,
@@ -269,7 +276,7 @@ leaflet() %>%
                 bringToFront = TRUE),
               group = "Environmental Justice communities") %>% 
   addPolygons(data = ma_blkgrps_sf,
-              fillColor = ~pal(BurdenCount), 
+              fillColor = ~pal(BurdenCountLabel), 
               weight = 0.5,
               opacity = 0.7,
               color = "white",
@@ -284,13 +291,13 @@ leaflet() %>%
                 fillOpacity = 0.7,
                 bringToFront = TRUE)) %>% 
   addLegend(title = "Cumulative Burdens", 
-            # pal = pal, # palette colors tied to values
-            values = ma_blkgrps_sf$BurdenCount,
-            colors = colors, # hex color values paired with labels
-            labels = c("1 Hi Burden + Hi Priority Pops ",
-                       "2 Hi Burdens + Hi Priority Pops",
-                       "3 Hi Burdens + Hi Priority Pops",
-                       "4 Hi Burdens + Hi Priority Pops"),
+            pal = pal, # palette colors tied to values
+            values = ma_blkgrps_sf$BurdenCountLabel,
+            # colors = colors, # hex color values paired with labels
+            # labels = c("1 Hi Burden + Hi Priority Pops ",
+            #            "2 Hi Burdens + Hi Priority Pops",
+            #            "3 Hi Burdens + Hi Priority Pops",
+            #            "4 Hi Burdens + Hi Priority Pops"),
             position = "bottomleft") %>% 
   setView(lng = -71.7, 42.1, zoom = 8) %>% 
   # addMiniMap() %>% 
@@ -339,7 +346,7 @@ Environmental burdens and benefits span four domains:
 
 ### Graph
 
-```{r graph, fig.align="center", fig.cap="Stacked bar chart of categorical and cumulative percentages of priority populations experiencing one or more highest cumulative burdens."}
+```{r graph, fig.align="center", fig.cap="Cumulative percentages of priority populations experiencing one or more highest cumulative burdens."}
 # # create a stacked bar chart to compare cumulative burdens
 # read_csv("tables/cum_burden.csv") %>% 
 #   select(Group,PctB1:PctB4) %>% 
@@ -455,9 +462,9 @@ sketch1 = htmltools::withTags(table(
   thead(
     tr(
       th(rowspan = 2, 'City/Town'),
-      th(colspan = 2, '3 Burdens'),
-      th(colspan = 2, '4 Burdens'),
-      th(colspan = 2, '3+ Burdens')
+      th(align="center", colspan = 2, '3 Burdens'),
+      th(align="center", colspan = 2, '4 Burdens'),
+      th(align="center", colspan = 2, '3+ Burdens')
     ),
     tr(
       lapply(rep(c('Pop', 'Pct'), 3), th)
@@ -485,9 +492,9 @@ sketch2 = htmltools::withTags(table(
   thead(
     tr(
       th(rowspan = 2, 'House District'),
-      th(colspan = 2, '3 Burdens'),
-      th(colspan = 2, '4 Burdens'),
-      th(colspan = 2, '3+ Burdens')
+      th(align="center", colspan = 2, '3 Burdens'),
+      th(align="center", colspan = 2, '4 Burdens'),
+      th(align="center", colspan = 2, '3+ Burdens')
     ),
     tr(
       lapply(rep(c('Pop', 'Pct'), 3), th)
@@ -513,9 +520,9 @@ sketch3 = htmltools::withTags(table(
   thead(
     tr(
       th(rowspan = 2, 'Senate District'),
-      th(colspan = 2, '3 Burdens'),
-      th(colspan = 2, '4 Burdens'),
-      th(colspan = 2, '3+ Burdens')
+      th(align="center", colspan = 2, '3 Burdens'),
+      th(align="center", colspan = 2, '4 Burdens'),
+      th(align="center", colspan = 2, '3+ Burdens')
     ),
     tr(
       lapply(rep(c('Pop', 'Pct'), 3), th)
