@@ -431,7 +431,17 @@ Flood and storm surge are significant risks in Massachusetts. In the event of ex
 ## Flood Hazard Exposure & Priority Populations by Census block group {.tabset}
 
 ### Flood
-```{r mapNFHZA, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations living in FEMA flood zones."}
+```{r mapNFHZA, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations living in FEMA flood zones."}
+# create simplified towns layer for faster mapping
+# download state outline
+ma_state <- states(cb = TRUE) %>% 
+  filter(NAME == "Massachusetts")
+# filter out extra polygons, clip out boundaries from water, simplify
+ma_towns_simple <- ma_towns %>% 
+  filter(NAME != "County subdivisions not defined") %>% 
+  ms_clip(., ma_state) %>% 
+  ms_simplify(., keep = 0.1, keep_shapes = TRUE)
+
 PopupEJ <- paste0(EJbgs$NAME, "<br/>",
                   "<b>Town:</b> ", EJbgs$TOWN, "<br/>",
                   "<b>State House District:</b> ", EJbgs$REP_DIST, "<br/>",
@@ -450,9 +460,9 @@ Popup <- paste0(ma_blkgrps_sf_NFHZA$NAME, "<br/>",
                 "<b>Priority Populations: </b>", ma_blkgrps_sf_NFHZA$POPSlabel, "<br/>",
                 "<b>FEMA flood risks: </b> ", ma_blkgrps_sf_NFHZA$floodtypes)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
-  addPolygons(data = ma_towns,
+  addPolygons(data = ma_towns_simple,
               weight = 0.7,
               opacity = 1,
               color = "gray",
@@ -541,7 +551,7 @@ leaflet() %>%
 <br>
 
 ### Hurricane
-```{r mapHEVAC, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations living in hurricane evacuation zones."}
+```{r mapHEVAC, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations living in hurricane evacuation zones."}
 PopupEJ <- paste0(EJbgs$NAME, "<br/>",
                   "<b>Town:</b> ", EJbgs$TOWN, "<br/>",
                   "<b>State House District:</b> ", EJbgs$REP_DIST, "<br/>",
@@ -559,9 +569,9 @@ Popup <- paste0(ma_blkgrps_sf_HEVAC$NAME, "<br/>",
                 "<b>Town:</b> ", ma_blkgrps_sf_HEVAC$TOWN, "<br/>",
                 "<b>Priority Populations: </b>", ma_blkgrps_sf_HEVAC$POPSlabel)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
-  addPolygons(data = ma_towns,
+  addPolygons(data = ma_towns_simple,
               weight = 0.7,
               opacity = 1,
               color = "gray",
@@ -774,8 +784,8 @@ sketch1 = htmltools::withTags(table(
   thead(
     tr(
       th(rowspan = 2, 'City/Town'),
-      th(colspan = 2, 'FEMA Flood Risk'),
-      th(colspan = 2, 'Hurricane Evacuation Risk')
+      th(align="center", colspan = 2, 'FEMA Flood Risk'),
+      th(align="center", colspan = 2, 'Hurricane Evacuation Risk')
     ),
     tr(
       lapply(rep(c('Pop', 'Pct'), 2), th)
@@ -808,8 +818,8 @@ sketch2 = htmltools::withTags(table(
   thead(
     tr(
       th(rowspan = 2, 'House District'),
-      th(colspan = 2, 'FEMA Flood Risk'),
-      th(colspan = 2, 'Hurricane Evacuation Risk')
+      th(align="center", colspan = 2, 'FEMA Flood Risk'),
+      th(align="center", colspan = 2, 'Hurricane Evacuation Risk')
     ),
     tr(
       lapply(rep(c('Pop', 'Pct'), 2), th)
@@ -840,8 +850,8 @@ sketch3 = htmltools::withTags(table(
   thead(
     tr(
       th(rowspan = 2, 'Senate District'),
-      th(colspan = 2, 'FEMA Flood Risk'),
-      th(colspan = 2, 'Hurricane Evacuation Risk')
+      th(align="center", colspan = 2, 'FEMA Flood Risk'),
+      th(align="center", colspan = 2, 'Hurricane Evacuation Risk')
     ),
     tr(
       lapply(rep(c('Pop', 'Pct'), 2), th)
@@ -865,24 +875,16 @@ senate_floodPop_pct %>%
 
 ### About the tables
 
-These tables show the number and percentage of population by jurisdiction exposed to FEMA flood risk or hurricane evacuation risk. FEMA flood risk is calculated as the percentage of a Census block group that falls within 100-year or 500-year flood risk zones and aggregated by jurisdiction. Hurricane evacuation risk is calculated as the percentage of a Census block group that falls within hurricane evacuation zones identified by the Massachusetts Emergency Management Agency and U.S. Army Corps of Engineers, and aggregated by jurisdiction. Population values are derived from the American Community Survey 5-year estimates for 2014-2018.
+These tables show the number and percentage of the general population by jurisdiction exposed to FEMA flood risk or hurricane evacuation risk. FEMA flood risk is calculated as the percentage of a Census block group that falls within 100-year or 500-year flood risk zones and aggregated by jurisdiction. Hurricane evacuation risk is calculated as the percentage of a Census block group that falls within hurricane evacuation zones identified by the Massachusetts Emergency Management Agency and U.S. Army Corps of Engineers, and aggregated by jurisdiction. Population values are derived from the American Community Survey 5-year estimates for 2014-2018.
 
-<br>
+* The analysis of flood exposure presented here is based on the Federal Emergency Management Agency’s (FEMA) [National Flood Hazard Layer (NFHL)](https://www.fema.gov/national-flood-hazard-layer-nfhl), a digital version of FEMA’s most recent flood maps. Flood risk areas are subject to floods with an Annual Exceedance Probability (AEP) of 1% (also known as a ‘100-year’ flood) and areas subject to 0.2% AEP (also known as a ‘500-year’ flood). Areas within the 1% AEP flood zone are designated by FEMA as Special Flood Hazard Areas, and development within those zones must be covered by flood insurance. Areas within the 0.2% AEP are not currently regulated, but these areas are nevertheless subject to flood risk under more extreme, albeit less frequent, flooding circumstances. 
 
-<br>
+*Note that digital data on flood risk for most of western Massachusetts is not currently available from FEMA. Flood risk for western Massachusetts is likely to be underestimated.*
 
-<br>
+* The analysis of hurricane evacuation risk presented here is based on Hurricane Evacuation Maps produced by the [U.S. Army Corps of Engineers for New England](https://www.nae.usace.army.mil/Missions/Projects-Topics/Massachusetts-Hurricane-Studies/). The maps show Hurricane Evacuation Zones that are recommended to be evacuated during potential worst-case hurricane storm surge inundation. These evacuation zones are based on storm surge modeling by the National Weather Service’s National Hurricane Center using the hydrodynamic [Sea, Lake, and Overland Surges from Hurricanes (SLOSH) model](https://www.nhc.noaa.gov/nationalsurge/) to simulate storm surge from tropical cyclones. 
 
-<br>
+Identifying populations at risk:
 
-<br>
-
-<br>
-
-<br>
-
-<br>
-
-<br>
-
-<br>
+In order to identify counts and percentages of populations at risk, polygons of flood or hurricane evacuation risk zones were spatially intersected with the *developed or occupied portions of block groups* based on ancillary data from the [National Land Cover Database (NLCD)](https://www.mrlc.gov/data/nlcd-2016-land-cover-conus). The NLCD is a nationwide geospatial database on land cover and land cover change at a 30m resolution produced by the US Geological Survey (USGS) in partnership with several federal agencies as part of the Multi-Resolution Land Characteristics Consortium (MRLC). Populations at risk were calculated based on a process of areal apportionment. The population at risk from flooding was calculated as the product of the areal proportion of the intersecting flood and developed Block Group polygons: 
+*Population at risk = Proportion of developed Block Group Intersection x Population of developed Block Group*
+For example, if 10% of the developed area of a Census Block Group  intersected/overlapped with a flood polygon, it was assumed that 10% of the population is exposed to that flood risk. Assuming a population of 100 people in the developed portion of the Block Group, this would mean 100 x .10 = 10 people would be subject to flood risk.
