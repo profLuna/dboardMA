@@ -268,7 +268,17 @@ Transportation accounts for a significant share of air pollution. These interact
 ## Emissions & Priority Populations by Census block group {.tabset}
 
 ### PM2.5
-```{r mapPM25, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest PM2.5 concentrations."}
+```{r mapPM25, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest PM2.5 concentrations."}
+# create simplified towns layer for faster mapping
+# download state outline
+ma_state <- states(cb = TRUE) %>% 
+  filter(NAME == "Massachusetts")
+# filter out extra polygons, clip out boundaries from water, simplify
+ma_towns_simple <- ma_towns %>% 
+  filter(NAME != "County subdivisions not defined") %>% 
+  ms_clip(., ma_state) %>% 
+  ms_simplify(., keep = 0.1, keep_shapes = TRUE)
+
 # create color palette
 palPM25 <- colorQuantile(
   palette = "YlOrRd",
@@ -307,9 +317,9 @@ Popup <- paste0(ma_blkgrps_sf_PM25$NAME, "<br/>",
          "<b>PM<sub>2.5</sub> percentile:</b> ", round(ma_blkgrps_sf_PM25$PM25pctile*100,0), "<br/>",
                       "<b>Priority Populations: </b>", ma_blkgrps_sf_PM25$POPSlabel)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
-  addPolygons(data = ma_towns,
+  addPolygons(data = ma_towns_simple,
               weight = 0.7,
               opacity = 1,
               color = "gray",
@@ -409,7 +419,7 @@ leaflet() %>%
 <br>
 
 ### DPM
-```{r mapDPM, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest Diesel Particullate Matter (DPM) concentrations."}
+```{r mapDPM, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest Diesel Particullate Matter (DPM) concentrations."}
 # create color palette
 palDPM <- colorQuantile(
   palette = "YlOrRd",
@@ -448,9 +458,9 @@ Popup <- paste0(ma_blkgrps_sf_DPM$NAME, "<br/>",
          "<b>DPM percentile:</b> ", round(ma_blkgrps_sf_DPM$DPMpctile*100,0), "<br/>",
                       "<b>Priority Populations: </b>", ma_blkgrps_sf_DPM$POPSlabel)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
-  addPolygons(data = ma_towns,
+  addPolygons(data = ma_towns_simple,
               weight = 0.7,
               opacity = 1,
               color = "gray",
@@ -548,7 +558,7 @@ leaflet() %>%
 <br>
 
 ### Traffic
-```{r mapPTRAF, fig.align="center", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest Traffic Proximity and Volume (PTRAF) values - Annual Avg Daily Traffic/Distance(km) to High Traffic Corridor."}
+```{r mapPTRAF, fig.align="left", fig.cap="Map of Census block groups with the highest concentrations of one or more priority populations AND highest Traffic Proximity and Volume (PTRAF) values - Annual Avg Daily Traffic/Distance(km) to High Traffic Corridor."}
 # create color palette
 palPTRAF <- colorQuantile(
   palette = "YlOrRd",
@@ -587,9 +597,9 @@ Popup <- paste0(ma_blkgrps_sf_PTRAF$NAME, "<br/>",
          "<b>PTRAF percentile:</b> ", round(ma_blkgrps_sf_PTRAF$PTRAFpctile*100,0), "<br/>",
                       "<b>Priority Populations: </b>", ma_blkgrps_sf_PTRAF$POPSlabel)
 
-leaflet() %>% 
+leaflet(width = "100%") %>% 
   addProviderTiles(providers$Stamen.TonerLite) %>% 
-  addPolygons(data = ma_towns,
+  addPolygons(data = ma_towns_simple,
               weight = 0.7,
               opacity = 1,
               color = "gray",
@@ -1002,9 +1012,9 @@ sketch1 = htmltools::withTags(table(
   thead(
     tr(
       th(rowspan = 2, 'City/Town'),
-      th(colspan = 2, 'Avg PM2.5'),
-      th(colspan = 2, 'Avg Diesel Particulate Matter'),
-      th(colspan = 2, 'Avg Traffic Burden')
+      th(align="center", colspan = 2, 'Avg PM2.5'),
+      th(align="center", colspan = 2, 'Avg Diesel Particulate Matter'),
+      th(align="center", colspan = 2, 'Avg Traffic Burden')
     ),
     tr(
       lapply(rep(c('Value', 'Rank'), 3), th)
@@ -1035,9 +1045,9 @@ sketch2 = htmltools::withTags(table(
   thead(
     tr(
       th(rowspan = 2, 'House District'),
-      th(colspan = 2, 'Avg PM2.5'),
-      th(colspan = 2, 'Avg Diesel Particulate Matter'),
-      th(colspan = 2, 'Avg Traffic Burden')
+      th(align="center", colspan = 2, 'Avg PM2.5'),
+      th(align="center", colspan = 2, 'Avg Diesel Particulate Matter'),
+      th(align="center", colspan = 2, 'Avg Traffic Burden')
     ),
     tr(
       lapply(rep(c('Value', 'Rank'), 3), th)
@@ -1065,9 +1075,9 @@ sketch3 = htmltools::withTags(table(
   thead(
     tr(
       th(rowspan = 2, 'Senate District'),
-      th(colspan = 2, 'Avg PM2.5'),
-      th(colspan = 2, 'Avg Diesel Particulate Matter'),
-      th(colspan = 2, 'Avg Traffic Burden')
+      th(align="center", colspan = 2, 'Avg PM2.5'),
+      th(align="center", colspan = 2, 'Avg Diesel Particulate Matter'),
+      th(align="center", colspan = 2, 'Avg Traffic Burden')
     ),
     tr(
       lapply(rep(c('Value', 'Rank'), 3), th)
@@ -1088,7 +1098,7 @@ senate_districts %>%
 
 ### About the tables
 
-These tables show the average air pollution concentration values (micrograms per cubic meter of air) or average traffic burden scores (Proximity to High Traffic Corridors) by jurisdiction, along with the rank. A rank indicates the percentage of jurisdictions that are below that value. For example, Boston has a PM~2.5~ concentration value of 6.7 micrograms per cubic meter, and a PM~2.5~ rank of 93.4. The latter means that 93.4% of all other municipalities in the state have a lower average PM~2.5~ concentration. 
+These tables show the average air pollution concentration values (micrograms per cubic meter of air) or average traffic burden scores (Proximity to High Traffic Corridors) for Census block groups in that jurisdiction, along with the rank. A rank indicates the percentage of jurisdictions that are below that value. For example, Boston has an average PM~2.5~ concentration value of 6.7 micrograms per cubic meter, and a PM~2.5~ rank of 93.4. The latter means that Boston's average PM~2.5~ concentration is higher than that of 93.4% of all other municipalities in the state. 
 
 * PM~2.5~: Particulate matter in the air that is 2.5 microns or less in diameter (about 30 times smaller than the width of a human hair). These small particulates pose a threat to human health because they can penetrate deeply into the lungs and even enter the bloodstream. The EPA has documented that exposure to PM~2.5~ is associated with health effects such as elevated risk of premature mortality from cardiovascular diseases or lung cancer, and increased health problems such as asthma attacks.
 
