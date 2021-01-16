@@ -553,22 +553,22 @@ read_csv("../tables/burdens_senate.csv") %>%
 
 ### About the tables
 
-These tables show the aggregate number and percentage of people living in Census block groups with three or more highest cumulative environmental burdens. A block group is classified as having a high cumulative burden if it has a high percentage of one or more priority population groups (80th percentile for the state) *AND* it experiences the highest level of burdens (80th percentile for the state) for one or more categories of environmental burdens. 
+These tables show the aggregate number and percentage of the general population living in Census block groups with three or more highest cumulative environmental burdens. A block group is classified as having a high cumulative burden if it has a high percentage of one or more priority population groups (80th percentile for the state) *AND* it experiences the highest level of burdens (80th percentile for the state) for one or more categories of environmental burdens. 
 
-<br>
+Priority populations represent demographic groups that environmental justice policy and research have identified as being especially vulnerable to environmental burdens as a consequence of social or economic disadvantage, physical vulnerability, or historic and persistent discrimination and inequality. These include:
 
-<br>
+* People of color (i.e., persons who are of Hispanic ethnicity or racially not White)
+* Low income persons (i.e., income less than 200% of the poverty line)
+* Limited English speaking households (i.e., households where no adult speaks English "very well")
+* Adults 25 years or older without a high school diploma
+* Children under the age of 5
+* Adults over the age of 64
+* Environmental Justice communities defined by state policy
 
-<br>
 
-<br>
+Environmental burdens and benefits span four domains:
 
-<br>
-
-<br>
-
-<br>
-
-<br>
-
-<br>
+* Emissions: Air emissions related to transportation (e.g., particulates, smog, cancer risk)
+* Transportation: Access and adequacy of transportation options (e.g., access to public transit, transportation cost burden)
+* Evacuation: Risk from flooding or hurricane storm surge
+* Heat: Elevated heat risk (which exacerbates air pollution and other risks)
