@@ -424,7 +424,11 @@ rm(list = ls(pattern = paste("ne_","muni", "hevac", "nfhza", "_tracts_",
                              "ma_blkgrps_sf$", sep = "|")))
 ```
 
-Flood and storm surge are significant risks in Massachusetts. In the event of extensive inland or coastal flooding, evacuation may be required. For individuals and households with limited mobility, either due to inadequate access to transportation options or because of physical limitations, evacuation presents heightened risk. Evacuation may also prove especially difficult for individuals and households due to limited economic resources, difficulty understanding or accessing information, or low trust in official sources of information. These interactive figures identify communities across Massachusetts that are most most vulnerable to the risks of inland flooding or coastal storm surge.
+Flood and storm surge are significant risks in Massachusetts. In the event of extensive inland or coastal flooding, evacuation may be required. For individuals and households with limited mobility, either due to inadequate access to transportation options or because of physical limitations, evacuation presents heightened risk. Evacuation may also prove especially difficult for individuals and households due to limited economic resources, difficulty understanding or accessing information, or low trust in official sources of information. 
+
+Over 371,000 people in Massachusetts live in a FEMA flood risk zone and almost one million live in a hurricane evacuation zone. Limited English speaking households, households without a car, and lower income persons are disproportionately present in either a flood or a hurricane evacuation zone.
+
+These interactive figures identify communities across Massachusetts that are most most vulnerable to the risks of inland flooding or coastal storm surge.
 
 <br>
 
