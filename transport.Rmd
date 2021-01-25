@@ -411,7 +411,11 @@ Tcost80th <- round(quantile(ma_blkgrps_sf$hh7_t, 0.8, na.rm = T),1)
 rm(list = ls(pattern = paste("muni", "_80th", "headway80th", "_tract", "houseNoBus", "Transport", "houseWalk", "senateNoBus", "senateWalk", "lai_ma_blkgrp", "lai_ToverH", "_noTransit", "ma_blkgrps_sf_noBus", sep = "|"), ))
 ```
 
-The most important benefit of a transportation system is the access it provides to opportunity – economic, educational, health care, civic life, and simple freedom of movement.  Lack of adequate access to transportation hinders these opportunities. These interactive figures identify communities across Massachusetts that are most underserved and most sensitive to the quality of four transportation metrics: access to public transit, transit headways, neighborhood walkability, and transportation cost burden.  
+The most important benefit of a transportation system is the access it provides to opportunity – economic, educational, health care, civic life, and simple freedom of movement.  Lack of adequate access to transportation hinders these opportunities. 
+
+Although Massachusetts hosts more modes of transit than any other state in New England, almost 1.8 million people  - over 25% of the population - have no access to any form of public transit. Over 50% of the state’s population do not live within reasonable walking distance of a bus stop. In western Massachusetts, moderate income households face transportation cost burdens that exceed the costs of housing.
+
+These interactive figures identify communities across Massachusetts that are most underserved and most sensitive to the quality of four transportation metrics: access to public transit, transit headways, neighborhood walkability, and transportation cost burden.  
 
 <br>
 
