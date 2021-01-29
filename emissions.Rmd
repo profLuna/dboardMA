@@ -1028,6 +1028,7 @@ sketch1 = htmltools::withTags(table(
 
 ma_towns %>% 
   as.data.frame() %>% 
+  arrange(NAME) %>% 
   filter(NAME != "County subdivisions not defined") %>%
   select(NAME, PM25_19.mean, pctrank_PM25_19.mean, DSLPM_19.mean,
          pctrank_DSLPM_19.mean, PTRAF_19.mean, pctrank_PTRAF_19.mean) %>% 
