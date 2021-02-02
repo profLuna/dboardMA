@@ -39,7 +39,7 @@ meta() %>%
   meta_viewport() %>% 
   meta_social(
     title = "Investing for Equity in Massachusetts",
-    url = "http://dgl.salemstate.edu/luna/TransportEJ/MA/",
+    url = "http://dgl.salemstate.edu/luna/InvestingForEquity/MA/",
     og_type = "website",
     og_author = c("Marcos Luna", "Neenah Estrella-Luna"),
     twitter_card_type = "summary",
